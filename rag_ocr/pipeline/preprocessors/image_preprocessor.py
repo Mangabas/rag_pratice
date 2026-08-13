@@ -3,7 +3,6 @@ import base64
 from typing import Any
 from PIL import Image, ExifTags
 
-# A função get_exif_data permanece inalterada
 
 def prepare_image(file_obj: Any, filename: str) -> dict:
     """
