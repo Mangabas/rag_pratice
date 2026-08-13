@@ -6,3 +6,4 @@ pypdf
 python-docx
 Pillow
 google-generativeai
+djangorestframework
