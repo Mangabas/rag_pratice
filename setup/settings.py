@@ -42,6 +42,10 @@ INSTALLED_APPS = [
     'rag_ocr'
 ]
 
+EXTERNAL_APPS = [
+    "rest_framework"
+]
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
