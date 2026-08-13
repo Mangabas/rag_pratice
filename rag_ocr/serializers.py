@@ -24,22 +24,31 @@ class LegalDocumentSerializer(serializers.ModelSerializer):
 
 
 class LegalDocumentUploadSerializer(serializers.ModelSerializer):
-    # Serializer restrito usado só na criação (upload) do documento.
+    # Serializer usado na criação (upload) do documento.
+
+    EXTENSOES_PERMITIDAS = {
+        "pdf", "docx", "txt", "md", "csv",   # documentos
+        "jpg", "jpeg", "png", "webp",          # imagens
+    }
 
     class Meta:
         model = LegalDocument
         fields = ["file", "document_type"]
 
     def validate_file(self, value):
-        if not value.name.lower().endswith(".pdf"):
-            raise serializers.ValidationError("Somente arquivos PDF são aceitos.")
+        extensao = value.name.rsplit(".", 1)[-1].lower()
+        if extensao not in self.EXTENSOES_PERMITIDAS:
+            permitidas = ", ".join(sorted(self.EXTENSOES_PERMITIDAS))
+            raise serializers.ValidationError(
+                f"Extensão '.{extensao}' não suportada. Permitidas: {permitidas}"
+            )
         return value
 
     def create(self, validated_data):
         uploaded_file = validated_data["file"]
         name, _, ext = uploaded_file.name.rpartition(".")
         validated_data.setdefault("file_name", name or uploaded_file.name)
-        validated_data.setdefault("file_extension", ext)
+        validated_data.setdefault("file_extension", ext.lower())
         return super().create(validated_data)
 
 

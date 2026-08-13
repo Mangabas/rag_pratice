@@ -39,11 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rag_ocr'
-]
-
-EXTERNAL_APPS = [
-    "rest_framework"
+    'rest_framework',
+    'rag_ocr',
 ]
 
 MIDDLEWARE = [
@@ -122,14 +119,17 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/6.1/howto/static-files/
+# Chaves de API externas
+GOOGLE_API_KEY = config('GOOGLE_API_KEY', default='')
 
+# Static / Media
 STATIC_URL = 'static/'
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 
 # Email
-# https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
+# https://docs.djangoproject.com/en/5.2/topics/email/#topic-email-configuration
 
 MAILERS = {
     'default': {
