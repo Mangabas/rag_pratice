@@ -1,53 +1,54 @@
 import io
+import base64
 from typing import Any
-from PIL import Image
+from PIL import Image, ExifTags
 
-def prepare_image(
-    file_obj: Any,
-    filename: str
-) -> dict:
+# A função get_exif_data permanece inalterada
+
+def prepare_image(file_obj: Any, filename: str) -> dict:
     """
-    Recebe um objeto de arquivo de imagem. Se for um formato suportado, 
-    retorna os bytes. Se não for, converte para JPEG.
-    
+    Recebe um objeto de arquivo de imagem e o nome do arquivo, extrai os metadados EXIF e converte a imagem em bytes padronizados.
+
     Retorna:
-        dict: Contendo o mime_type e os 'dados' (em formato de bytes) da imagem.
+        dict: Dicionário contendo a estrutura base dos dados da imagem, metadados extraídos e os bytes preparados.
     """
     extension = filename.split('.')[-1].lower()
     
-    supported_mime_types = {
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'png': 'image/png',
-        'webp': 'image/webp',
+    result = {
+        "file_name": filename,
+        "file_orig_extension": extension,
+        "extracted_text": None,
+        "img_base64": None,
+        "extracted_objects": [],
+        "description": None,
+        "image_views": 0,
+        "geo_data": None,
+        "creation_date": None,
+        "modification_date": None,
+        "_llm_mime_type": "image/jpeg", 
+        "_llm_bytes": b""
     }
-    
-    if extension in supported_mime_types:
-        mime_type = supported_mime_types[extension]
-        image_bytes = file_obj.read()
-        file_obj.seek(0)
-        return {
-            "mime_type": mime_type,
-            "data": image_bytes
-        }
-        
+
     try:
         with Image.open(file_obj) as img:
+            exif_info = get_exif_data(img)
+            result.update(exif_info)
+
             if img.mode in ("RGBA", "P"):
                 img = img.convert("RGB")
             
             output_buffer = io.BytesIO()
             img.save(output_buffer, format="JPEG")
-            image_bytes = output_buffer.getvalue()
             
-        # Retorna o ponteiro do arquivo para o início, caso outra parte do Django precise lê-lo novamente
-        file_obj.seek(0)
-        
-        return {
-            "mime_type": "image/jpeg",
-            "data": image_bytes
-        }
-        
+            img_bytes = output_buffer.getvalue()
+            result["_llm_bytes"] = img_bytes
+            
+            result["img_base64"] = base64.b64encode(img_bytes).decode('utf-8')
+            
     except Exception as e:
+        raise ValueError(f"Não foi possível processar a imagem '{filename}'. Erro: {str(e)}")
 
-        raise ValueError(f"Não foi possível processar ou converter a imagem '{filename}'. Erro: {str(e)}")
+    # Garante que outra parte do Django possa ler o arquivo novamente 
+    file_obj.seek(0)
+    
+    return result
