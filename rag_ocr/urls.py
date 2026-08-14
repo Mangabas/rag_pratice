@@ -14,5 +14,6 @@ router.register("chunks", DocumentChunkViewSet, basename="chunk")
 
 urlpatterns = [
     path("", include(router.urls)),
+    path('api-auth/', include('rest_framework.urls')),
     path("ask/", AskQuestionView.as_view(), name="ask-question"),
 ]

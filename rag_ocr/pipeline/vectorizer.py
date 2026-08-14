@@ -6,7 +6,7 @@ from rag_ocr.models import DocumentChunk, LegalDocument
 
 CHUNK_SIZE = 700
 CHUNK_OVERLAP = 100
-EMBEDDING_MODEL = "gemini-embedding-001"
+EMBEDDING_MODEL = "models/text-embedding-004"
 
 
 def _get_embeddings() -> GoogleGenerativeAIEmbeddings:
@@ -22,37 +22,54 @@ def _get_embeddings() -> GoogleGenerativeAIEmbeddings:
     )
 
 
-def vectorize_document(document: LegalDocument, text: str, page_count: int = None) -> int:
+def vectorize_document(document: LegalDocument, extraction_result: dict) -> int:
     """
-    Divide o texto em chunks, gera embeddings e salva os DocumentChunk no banco.
+    Divide o texto em chunks por página, gera embeddings e salva os DocumentChunk com metadados.
+    """
+    pages_data = extraction_result.get("pages_data", [])
+    page_count = extraction_result.get("page_count")
 
-    Args:
-        document: Instância de LegalDocument já salva no banco.
-        text: Texto extraído do documento.
-        page_count: Número de páginas (opcional, para PDF/DOCX).
-    Returns:
-        Número de chunks criados.
-    Raises:
-        ValueError: Se o texto estiver vazio ou a chave de API não estiver configurada.
-    """
-    if not text or not text.strip():
+    if not pages_data:
         raise ValueError(f"Texto vazio para o documento '{document.file_name}'. Nenhum chunk criado.")
 
     if page_count is not None:
         LegalDocument.objects.filter(pk=document.pk).update(page_count=page_count)
+
+    # Filtra os metadados removendo chaves vazias
+    raw_metadata = {
+        "subject": extraction_result.get("subject"),
+        "keywords": extraction_result.get("keywords"),
+        "creator": extraction_result.get("creator"),
+        "producer": extraction_result.get("producer"),
+        "creation_date": extraction_result.get("creation_date"),
+        "modification_date": extraction_result.get("modification_date"),
+    }
+    chunk_metadata = {k: v for k, v in raw_metadata.items() if v is not None}
 
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=CHUNK_SIZE,
         chunk_overlap=CHUNK_OVERLAP,
         separators=["\n\n", "\n", ".", " ", ""],
     )
-    trechos = splitter.split_text(text)
 
-    if not trechos:
+    all_trechos = []
+    all_page_numbers = []
+
+    # Processa os chunks respeitando os limites das páginas
+    for page in pages_data:
+        text = page.get("text", "")
+        if not text.strip():
+            continue
+            
+        trechos = splitter.split_text(text)
+        all_trechos.extend(trechos)
+        all_page_numbers.extend([page.get("page_number")] * len(trechos))
+
+    if not all_trechos:
         raise ValueError(f"Nenhum trecho gerado para '{document.file_name}'.")
 
     embeddings_client = _get_embeddings()
-    vetores = embeddings_client.embed_documents(trechos)
+    vetores = embeddings_client.embed_documents(all_trechos)
 
     DocumentChunk.objects.filter(document=document).delete()
 
@@ -61,15 +78,13 @@ def vectorize_document(document: LegalDocument, text: str, page_count: int = Non
             document=document,
             content=trecho,
             chunk_index=i,
+            page_number=page_num,
             embedding=vetor,
             embedding_model=EMBEDDING_MODEL,
+            metadata=chunk_metadata,
         )
-        for i, (trecho, vetor) in enumerate(zip(trechos, vetores))
+        for i, (trecho, vetor, page_num) in enumerate(zip(all_trechos, vetores, all_page_numbers))
     ]
-    # Trunca os vetores para 768 dimensões para alinhar com o pgvector
-    for chunk in chunks:
-        if len(chunk.embedding) > 768:
-            chunk.embedding = chunk.embedding[:768]
     
     DocumentChunk.objects.bulk_create(chunks)
 

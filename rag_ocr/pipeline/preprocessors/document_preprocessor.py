@@ -16,8 +16,9 @@ def process_document(file_obj: Any, filename: str) -> dict:
     result = {
         "file_name": filename,
         "file_extension": extension,
-        "extracted_text": None,
-        "author": None,
+        "extracted_text": "",
+        "page_count": None,
+        "pages_data": [],
         "subject": None,
         "keywords": None,
         "creator": None,
@@ -27,22 +28,36 @@ def process_document(file_obj: Any, filename: str) -> dict:
     }
 
     if extension in ['txt', 'md']:
-        result["extracted_text"] = file_obj.read().decode('utf-8', errors='ignore').strip()
+        text = file_obj.read().decode('utf-8', errors='ignore').strip()
+        result["extracted_text"] = text
+        result["pages_data"] = [{"text": text, "page_number": 1}]
+        result["page_count"] = 1
 
     elif extension == 'csv':
         decoded_file = file_obj.read().decode('utf-8', errors='ignore').splitlines()
         reader = csv.reader(decoded_file)
-        result["extracted_text"] = "\n".join([", ".join(row) for row in reader]).strip()
+        text = "\n".join([", ".join(row) for row in reader]).strip()
+        result["extracted_text"] = text
+        result["pages_data"] = [{"text": text, "page_number": 1}]
+        result["page_count"] = 1
 
     elif extension == 'pdf':
         reader = PdfReader(file_obj)
-        result["extracted_text"] = "\n".join([
-            page.extract_text() for page in reader.pages if page.extract_text()
-        ]).strip()
+        result["page_count"] = len(reader.pages)
+        
+        full_text = []
+        for i, page in enumerate(reader.pages):
+            page_text = page.extract_text()
+            if page_text:
+                full_text.append(page_text)
+                result["pages_data"].append({
+                    "text": page_text,
+                    "page_number": i + 1
+                })
+        result["extracted_text"] = "\n".join(full_text).strip()
         
         meta = reader.metadata
         if meta:
-            result["author"] = meta.get('/Author')
             result["subject"] = meta.get('/Subject')
             result["keywords"] = meta.get('/Keywords')
             result["creator"] = meta.get('/Creator')
@@ -52,10 +67,12 @@ def process_document(file_obj: Any, filename: str) -> dict:
 
     elif extension == 'docx':
         doc = docx.Document(file_obj)
-        result["extracted_text"] = "\n".join([paragraph.text for paragraph in doc.paragraphs]).strip()
+        text = "\n".join([paragraph.text for paragraph in doc.paragraphs]).strip()
+        result["extracted_text"] = text
+        result["pages_data"] = [{"text": text, "page_number": 1}]
+        result["page_count"] = 1
         
         props = doc.core_properties
-        result["author"] = props.author
         result["subject"] = props.subject
         result["keywords"] = props.keywords
         result["creation_date"] = str(props.created) if props.created else None
@@ -64,7 +81,6 @@ def process_document(file_obj: Any, filename: str) -> dict:
     else:
         raise ValueError(f"Formato de documento não suportado: {extension}")
 
-    # Garante que outra parte do Django possa ler o arquivo novamente
     file_obj.seek(0)
     
     return result

@@ -17,10 +17,10 @@ class LegalDocumentSerializer(serializers.ModelSerializer):
         model = LegalDocument
         fields = [
             "id", "file", "file_name", "document_type", "file_extension",
-            "author", "keywords", "page_count", "chunk_count",
+            "keywords", "page_count", "processing_status", "chunk_count",
             "created_at", "updated_at",
         ]
-        read_only_fields = ["id", "page_count", "chunk_count", "created_at", "updated_at"]
+        read_only_fields = ["id", "page_count", "processing_status", "chunk_count", "created_at", "updated_at"]
 
 
 class LegalDocumentUploadSerializer(serializers.ModelSerializer):

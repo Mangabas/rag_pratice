@@ -12,13 +12,6 @@ def ingest_document(document: LegalDocument) -> int:
     Orquestra o pipeline completo de ingestão para um LegalDocument já salvo no banco.
     Para imagens: o Gemini Vision faz o OCR e extrai o texto.
     Para documentos: pypdf/python-docx extrai o texto diretamente.
-
-    Args:
-        document: Instância de LegalDocument com o arquivo já salvo.
-    Returns:
-        Número de chunks criados no banco.
-    Raises:
-        ValueError: Se o arquivo não puder ser processado ou não houver texto extraído.
     """
     LegalDocument.objects.filter(pk=document.pk).update(processing_status="PROCESSING")
 
@@ -29,16 +22,20 @@ def ingest_document(document: LegalDocument) -> int:
 
         extracted_text = resultado.get("extracted_text") or ""
 
+        # OCR via Gemini para imagens sem texto extraível nativamente
         if not extracted_text and resultado.get("img_base64"):
             extracted_text = _ocr_via_gemini(
                 imagem_base64=resultado["img_base64"],
                 filename=document.file_name,
             )
+            # Insere a estrutura de páginas para que o vectorizer consiga processar imagens
+            resultado["pages_data"] = [{"text": extracted_text, "page_number": 1}]
+            resultado["page_count"] = 1
+            resultado["extracted_text"] = extracted_text
 
         total_chunks = vectorize_document(
             document=document,
-            text=extracted_text,
-            page_count=resultado.get("page_count"),
+            extraction_result=resultado,
         )
 
         LegalDocument.objects.filter(pk=document.pk).update(processing_status="PROCESSED")
@@ -52,12 +49,6 @@ def ingest_document(document: LegalDocument) -> int:
 def _ocr_via_gemini(imagem_base64: str, filename: str) -> str:
     """
     Usa o Gemini Vision (multimodal) para extrair texto de uma imagem.
-
-    Args:
-        imagem_base64: Imagem codificada em base64.
-        filename: Nome do arquivo (usado apenas para contexto no prompt).
-    Returns:
-        Texto extraído pelo modelo.
     """
     api_key = getattr(settings, "GOOGLE_API_KEY", "").strip()
     if not api_key:
