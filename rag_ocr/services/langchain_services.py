@@ -20,11 +20,6 @@ class LangchainServices:
         GOOGLE_API_KEY: chave da API Google AI Studio
     """
 
-    _EMBEDDING_MODEL = "gemini-embedding-001"
-    _CHAT_MODEL = "gemini-3.6-flash"
-    _EMBEDDING_DIMENSION = 768
-    _TOP_K = 6
-    _TEMPERATURE = 0.2
 
     def __init__(self):
         api_key = getattr(settings, "GOOGLE_API_KEY", "").strip()
@@ -35,14 +30,13 @@ class LangchainServices:
             )
 
         self._embeddings = GoogleGenerativeAIEmbeddings(
-            model=self._EMBEDDING_MODEL,
+            model=settings.EMBEDDING_MODEL,
             google_api_key=api_key,
         )
 
         self._llm = ChatGoogleGenerativeAI(
-            model=self._CHAT_MODEL,
+            model=settings.CHAT_MODEL,
             google_api_key=api_key,
-            temperature=self._TEMPERATURE,
         )
 
 
@@ -106,7 +100,7 @@ class LangchainServices:
         return list(
             DocumentChunk.objects.select_related("document").order_by(
                 CosineDistance("embedding", vector)
-            )[: self._TOP_K]
+            )[: settings.TOP_K]
         )
 
 
