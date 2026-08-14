@@ -5,9 +5,9 @@ from .models import Answer, AnswerCitation, Conversation, DocumentChunk, LegalDo
 
 @admin.register(LegalDocument)
 class LegalDocumentAdmin(admin.ModelAdmin):
-    list_display = ["file_name", "document_type", "author", "page_count", "created_at"]
+    list_display = ["file_name", "document_type", "page_count", "created_at"]
     list_filter = ["document_type"]
-    search_fields = ["file_name", "author"]
+    search_fields = ["file_name"]
     readonly_fields = ["id", "created_at", "updated_at"]
 
 

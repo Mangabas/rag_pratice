@@ -25,7 +25,6 @@ class LegalDocument(models.Model):
     file_name = models.CharField(max_length=255)
     document_type = models.CharField(max_length=10, choices=DocumentType.choices, default=DocumentType.OUTRO)
     file_extension = models.CharField(max_length=10, blank=True)
-    author = models.CharField(max_length=50, blank=True)
     keywords = models.JSONField(default=list, blank=True)
     page_count = models.PositiveIntegerField(null=True, blank=True)
     processing_status = models.CharField(

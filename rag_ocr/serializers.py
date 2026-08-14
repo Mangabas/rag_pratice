@@ -24,11 +24,9 @@ class LegalDocumentSerializer(serializers.ModelSerializer):
 
 
 class LegalDocumentUploadSerializer(serializers.ModelSerializer):
-    # Serializer usado na criação (upload) do documento.
-
     EXTENSOES_PERMITIDAS = {
-        "pdf", "docx", "txt", "md", "csv",   # documentos
-        "jpg", "jpeg", "png", "webp",          # imagens
+        "pdf", "docx", "txt", "md", "csv",
+        "jpg", "jpeg", "png", "webp",
     }
 
     class Meta:
@@ -86,25 +84,12 @@ class AnswerSerializer(serializers.ModelSerializer):
 
 
 class QuerySerializer(serializers.ModelSerializer):
-    # exibe uma pergunta já feita, com a resposta aninhada (se existir).
     answer = AnswerSerializer(read_only=True)
 
     class Meta:
         model = Query
         fields = ["id", "conversation", "user", "question", "answer", "created_at"]
         read_only_fields = ["id", "user", "answer", "created_at"]
-
-
-class QueryCreateSerializer(serializers.Serializer):
-    """
-    Input do endpoint de pergunta. A criação da Answer depende do
-    pipeline de RAG, por isso não é um ModelSerializer.
-    """
-
-    conversation = serializers.PrimaryKeyRelatedField(
-        queryset=Conversation.objects.all(), required=False, allow_null=True
-    )
-    question = serializers.CharField(min_length=3, max_length=4000)
 
 
 class ConversationSerializer(serializers.ModelSerializer):

@@ -111,13 +111,15 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
+# Variáveis da arquitetura do modelo
+EMBEDDING_MODEL = "gemini-embedding-001"
+CHAT_MODEL = "gemini-3.6-flash"
+TOP_K = 6
+TEMPERATURE = 0.2
 
 # Chaves de API externas
 GOOGLE_API_KEY = config('GOOGLE_API_KEY', default='')
