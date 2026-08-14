@@ -209,6 +209,7 @@ class LangchainServices:
         return {
             "resposta": resposta,
             "fontes": fontes,
+            "chunks": chunks,
         }
 
     # ------------------------------------------------------------------
