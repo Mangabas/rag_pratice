@@ -22,7 +22,7 @@ class IsStaffOrReadOnly(permissions.BasePermission):
 
 class LegalDocumentViewSet(viewsets.ModelViewSet):
     queryset = LegalDocument.objects.all()
-    permission_classes = [IsStaffOrReadOnly]
+    permission_classes = [permissions.AllowAny]
     filterset_fields = ["document_type"]
 
     def get_serializer_class(self):
@@ -30,12 +30,22 @@ class LegalDocumentViewSet(viewsets.ModelViewSet):
             return LegalDocumentUploadSerializer
         return LegalDocumentSerializer
 
+    def perform_create(self, serializer):
+        document = serializer.save()
+        # Chama a ingestão de forma síncrona
+        from rag_ocr.pipeline.llm_agent import ingest_document
+        try:
+            ingest_document(document)
+        except Exception as e:
+            # Em um app em produção, seria ideal logar esse erro adequadamente
+            print(f"Erro na ingestão do documento {document.id}: {e}")
+
 
 class DocumentChunkViewSet(viewsets.ReadOnlyModelViewSet):
     # restrito à leitura dos chunks
 
     serializer_class = DocumentChunkSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
         qs = DocumentChunk.objects.select_related("document")
@@ -45,44 +55,50 @@ class DocumentChunkViewSet(viewsets.ReadOnlyModelViewSet):
         return qs
 
 
-class ConversationViewSet(viewsets.ModelViewSet):
-    serializer_class = ConversationSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return Conversation.objects.filter(user=self.request.user).prefetch_related(
-            "queries__answer__citations_answer__chunk__document"
-        )
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+# class ConversationViewSet(viewsets.ModelViewSet):
+#     serializer_class = ConversationSerializer
+#     permission_classes = [permissions.IsAuthenticated]
+# 
+#     def get_queryset(self):
+#         return Conversation.objects.filter(user=self.request.user).prefetch_related(
+#             "queries__answer__citations_answer__chunk__document"
+#         )
+# 
+#     def perform_create(self, serializer):
+#         serializer.save(user=self.request.user)
 
 
 class AskQuestionView(APIView):
     """
-    Endpoint principal de consulta. Por enquanto só cria o registro de
-    Query, a chamada ao pipeline de RAG ainda não está implementada
+    Endpoint principal de consulta simplificado para focar apenas no RAG.
+    Ignora conversas e autenticação por enquanto.
     """
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        serializer = QueryCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        conversation = serializer.validated_data.get("conversation")
-        if conversation and conversation.user_id != request.user.id:
+        question = request.data.get("question")
+        if not question:
             return Response(
-                {"detail": "Você não tem acesso a essa conversa."},
-                status=status.HTTP_403_FORBIDDEN,
+                {"detail": "O campo 'question' é obrigatório no JSON."},
+                status=status.HTTP_400_BAD_REQUEST
             )
 
-        query = Query.objects.create(
-            user=request.user,
-            conversation=conversation,
-            question=serializer.validated_data["question"],
-        )
+        from rag_ocr.services.langchain_services import LangchainServices
 
-        # chamar o serviço de RAG aqui
-
-        return Response(QuerySerializer(query).data, status=status.HTTP_201_CREATED)
+        try:
+            rag_service = LangchainServices()
+            resultado = rag_service.perguntar(question)
+            
+            return Response({
+                "question": question,
+                "answer": resultado["resposta"],
+                "sources": resultado.get("fontes", [])
+            }, status=status.HTTP_200_OK)
+                
+        except Exception as e:
+            # Em caso de erro na LLM ou busca
+            return Response(
+                {"detail": f"Erro ao processar a pergunta: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

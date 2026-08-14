@@ -28,6 +28,11 @@ class LegalDocument(models.Model):
     author = models.CharField(max_length=50, blank=True)
     keywords = models.JSONField(default=list, blank=True)
     page_count = models.PositiveIntegerField(null=True, blank=True)
+    processing_status = models.CharField(
+        max_length=20,
+        choices=ProcessingStatus.choices,
+        default=ProcessingStatus.PENDING,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -45,7 +50,7 @@ class DocumentChunk(models.Model):
     chunk_index = models.PositiveIntegerField()
     page_number = models.PositiveIntegerField(null=True, blank=True)
     token_count = models.PositiveIntegerField(null=True, blank=True)
-    embedding = VectorField(dimensions=1024, null=True, blank=True)
+    embedding = VectorField(dimensions=768, null=True, blank=True)
     embedding_model = models.CharField(max_length=100, blank=True)
     metadata = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
