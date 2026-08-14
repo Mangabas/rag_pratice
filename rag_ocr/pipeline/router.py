@@ -2,6 +2,7 @@ from typing import Any
 from .preprocessors.document_preprocessor import process_document
 from .preprocessors.image_preprocessor import prepare_image
 
+
 def process_upload(file_obj: Any, filename: str) -> dict:
     extension = filename.split('.')[-1].lower()
     

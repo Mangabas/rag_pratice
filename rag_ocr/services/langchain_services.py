@@ -45,9 +45,6 @@ class LangchainServices:
             temperature=self._TEMPERATURE,
         )
 
-    # ------------------------------------------------------------------
-    # Prompt do sistema
-    # ------------------------------------------------------------------
 
     def _prompt_system(self) -> SystemMessage:
         conteudo = (
@@ -84,20 +81,18 @@ class LangchainServices:
         )
         return SystemMessage(content=conteudo)
 
-    # ------------------------------------------------------------------
-    # Embedding
-    # ------------------------------------------------------------------
 
     def _embed_query(self, quest: str) -> list:
-        """Gera o vetor de embedding para a pergunta do usuário."""
+        """
+        Gera o vetor de embedding para a pergunta do usuário.
+        """
         return self._embeddings.embed_query(quest)
 
-    # ------------------------------------------------------------------
-    # Busca semântica no banco (pgvector)
-    # ------------------------------------------------------------------
 
     def _chunks_search(self, quest: str) -> list:
-        """Busca os chunks mais relevantes via similaridade de cosseno."""
+        """
+        Busca os chunks mais relevantes via similaridade de cosseno.
+        """
         if not quest or not quest.strip():
             raise ValueError(
                 "Você não fez nenhuma pergunta. "
@@ -114,9 +109,6 @@ class LangchainServices:
             )[: self._TOP_K]
         )
 
-    # ------------------------------------------------------------------
-    # Montagem de mensagens
-    # ------------------------------------------------------------------
 
     def _build_messages(
         self,
@@ -163,9 +155,6 @@ class LangchainServices:
 
         return messages
 
-    # ------------------------------------------------------------------
-    # Chat completion
-    # ------------------------------------------------------------------
 
     def _chat_completion(
         self,
@@ -173,14 +162,13 @@ class LangchainServices:
         quest: str,
         imagem_base64: str = "",
     ) -> str:
-        """Invoca o LLM com o contexto e retorna a resposta em texto."""
+        """
+        Invoca a LLM com o contexto e retorna a resposta em texto.
+        """
         messages = self._build_messages(contexto, quest, imagem_base64=imagem_base64)
         response = self._llm.invoke(messages)
         return response.content
 
-    # ------------------------------------------------------------------
-    # Orquestração principal
-    # ------------------------------------------------------------------
 
     def _get_question(
         self,
@@ -215,9 +203,6 @@ class LangchainServices:
             "chunks": chunks,
         }
 
-    # ------------------------------------------------------------------
-    # API pública
-    # ------------------------------------------------------------------
 
     def perguntar(self, quest: str) -> dict:
         """
@@ -231,17 +216,16 @@ class LangchainServices:
         """
         return self._get_question(quest)
 
+
     def perguntar_com_imagem(
         self,
         imagem_base64: str,
         quest: str,
     ) -> dict:
         """
-        Analisa um documento escaneado (imagem) e responde a pergunta.
-
-        Usa a capacidade multimodal do Gemini Vision para realizar OCR
-        e interpretação jurídica diretamente sobre a imagem do documento,
-        sem necessidade de um step separado de OCR.
+        Analisa um documento escaneado e responde a pergunta. Utiliza o
+        Gemini Vision para realizar OCR e fazer a interpretação jurídica
+        do documento
 
         Args:
             imagem_base64: Imagem do documento em base64.
@@ -251,19 +235,6 @@ class LangchainServices:
 
         Returns:
             dict com 'resposta' (str) e 'fontes' (list[str])
-
-        Exemplo de uso:
-            import base64
-
-            with open("contrato.jpg", "rb") as f:
-                img_b64 = base64.b64encode(f.read()).decode()
-
-            service = LangchainServices()
-            resultado = service.perguntar_com_imagem(
-                imagem_base64=img_b64,
-                quest="Quais são as partes envolvidas neste contrato?",
-            )
-            print(resultado["resposta"])
         """
         return self._get_question(
             quest,
