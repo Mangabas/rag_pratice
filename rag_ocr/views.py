@@ -55,17 +55,17 @@ class DocumentChunkViewSet(viewsets.ReadOnlyModelViewSet):
         return qs
 
 
-class ConversationViewSet(viewsets.ModelViewSet):
-    serializer_class = ConversationSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return Conversation.objects.filter(user=self.request.user).prefetch_related(
-            "queries__answer__citations_answer__chunk__document"
-        )
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+# class ConversationViewSet(viewsets.ModelViewSet):
+#     serializer_class = ConversationSerializer
+#     permission_classes = [permissions.IsAuthenticated]
+# 
+#     def get_queryset(self):
+#         return Conversation.objects.filter(user=self.request.user).prefetch_related(
+#             "queries__answer__citations_answer__chunk__document"
+#         )
+# 
+#     def perform_create(self, serializer):
+#         serializer.save(user=self.request.user)
 
 
 class AskQuestionView(APIView):

@@ -33,7 +33,8 @@ def ingest_document(document: LegalDocument) -> int:
 
     try:
         with document.file.open("rb") as file_obj:
-            resultado = process_upload(file_obj, document.file_name)
+            nome_completo = f"{document.file_name}.{document.file_extension}"
+            resultado = process_upload(file_obj, nome_completo)
 
         extracted_text = resultado.get("extracted_text") or ""
 
