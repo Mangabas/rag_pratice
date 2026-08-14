@@ -123,6 +123,8 @@ TEMPERATURE = 0.2
 
 # Chaves de API externas
 GOOGLE_API_KEY = config('GOOGLE_API_KEY', default='')
+# Torna a chave visível para o Langchain/Agente
+os.environ['GOOGLE_API_KEY'] = GOOGLE_API_KEY
 
 # Static / Media
 STATIC_URL = 'static/'
