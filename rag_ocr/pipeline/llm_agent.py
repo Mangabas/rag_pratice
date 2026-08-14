@@ -83,7 +83,7 @@ def _ocr_via_gemini(imagem_base64: str, filename: str) -> str:
         imagem_base64 = f"data:image/jpeg;base64,{imagem_base64}"
 
     llm = ChatGoogleGenerativeAI(
-        model="gemini-2.0-flash",
+        model="gemini-3.6-flash",
         google_api_key=api_key,
         temperature=0.0,
     )
@@ -106,4 +106,13 @@ def _ocr_via_gemini(imagem_base64: str, filename: str) -> str:
     )
 
     resposta = llm.invoke([mensagem])
-    return resposta.content
+    conteudo = resposta.content
+    if isinstance(conteudo, list):
+        texto_final = ""
+        for bloco in conteudo:
+            if isinstance(bloco, str):
+                texto_final += bloco
+            elif isinstance(bloco, dict) and "text" in bloco:
+                texto_final += bloco["text"]
+        return texto_final
+    return str(conteudo)

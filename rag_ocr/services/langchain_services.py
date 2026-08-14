@@ -21,7 +21,7 @@ class LangchainServices:
     """
 
     _EMBEDDING_MODEL = "gemini-embedding-001"
-    _CHAT_MODEL = "gemini-2.0-flash"
+    _CHAT_MODEL = "gemini-3.6-flash"
     _EMBEDDING_DIMENSION = 768
     _TOP_K = 6
     _TEMPERATURE = 0.2
@@ -105,6 +105,9 @@ class LangchainServices:
             )
 
         vector = self._embed_query(quest)
+        if len(vector) > 768:
+            vector = vector[:768]
+            
         return list(
             DocumentChunk.objects.select_related("document").order_by(
                 CosineDistance("embedding", vector)
