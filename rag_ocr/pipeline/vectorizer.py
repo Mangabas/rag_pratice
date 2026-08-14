@@ -78,7 +78,15 @@ def vectorize_document(document: LegalDocument, text: str, page_count: int = Non
             embedding_model=EMBEDDING_MODEL,
         )
         for i, (trecho, vetor) in enumerate(zip(trechos, vetores))
+        # Para modelos novos do Google (que suportam Matryoshka representation)
+        # podemos truncar com segurança o vetor para 768 se ele voltar com 3072
+        if vetor else (trecho, [])
     ]
+    # Trunca os vetores para 768 dimensões para alinhar com o pgvector
+    for chunk in chunks:
+        if len(chunk.embedding) > 768:
+            chunk.embedding = chunk.embedding[:768]
+    
     DocumentChunk.objects.bulk_create(chunks)
 
     return len(chunks)
